@@ -80,6 +80,13 @@ def pick_unique(pool: list, last_map: dict[int, object], channel_id: int):
             choice = random.choice(pool)
     last_map[channel_id] = choice
     return choice
+
+def is_nsfw_channel(channel) -> bool:
+    """Return True if the channel (or, for threads, its parent channel) is marked NSFW."""
+    if isinstance(channel, discord.Thread):
+        parent = channel.parent
+        return bool(getattr(parent, "is_nsfw", lambda: False)()) if parent is not None else False
+    return bool(getattr(channel, "is_nsfw", lambda: False)())
  
 intents = discord.Intents.default()
 intents.message_content = True
@@ -147,7 +154,7 @@ class TruthOrDareView(discord.ui.View):
 
         if kind.startswith("nsfw"):
             channel = interaction.channel
-            if not isinstance(channel, (discord.Thread,)) and not getattr(channel, "is_nsfw", lambda: False)():
+            if not is_nsfw_channel(channel):
                 await interaction.response.send_message(
                     "🔒 NSFW prompts can only be used in a channel marked as NSFW in Discord's channel settings.",
                     ephemeral=True,
