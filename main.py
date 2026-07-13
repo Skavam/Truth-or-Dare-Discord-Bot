@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import string
+import time
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -56,6 +57,8 @@ KIND_LABELS = {
     "nsfw_dare": "DARE",
 }
 
+BUTTON_COOLDOWN_SECONDS = 3.0
+
 def gen_id(length: int = 10) -> str:
     alphabet = string.ascii_lowercase + string.digits
     return "".join(random.choice(alphabet) for _ in range(length))
@@ -91,6 +94,7 @@ class TruthOrDareClient(discord.Client):
             "nsfw_truth": {},
             "nsfw_dare": {},
         }
+        self.last_click: dict[int, float] = {}
  
     async def setup_hook(self):
         await self.tree.sync()
@@ -121,8 +125,26 @@ def build_embed(kind: str, prompt_text: str, rating: str, requester: discord.abc
 class TruthOrDareView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)  
+
+    def _check_cooldown(self, user_id: int) -> float:
+        now = time.monotonic()
+        last = client.last_click.get(user_id)
+        if last is not None:
+            elapsed = now - last
+            if elapsed < BUTTON_COOLDOWN_SECONDS:
+                return BUTTON_COOLDOWN_SECONDS - elapsed
+        client.last_click[user_id] = now
+        return 0.0
  
     async def _send_prompt(self, interaction: discord.Interaction, kind: str):
+        remaining = self._check_cooldown(interaction.user.id)
+        if remaining > 0:
+            await interaction.response.send_message(
+                f"⏳ Slow down! You can click again in {remaining:.1f}s.",
+                ephemeral=True,
+            )
+            return
+
         if kind.startswith("nsfw"):
             channel = interaction.channel
             if not isinstance(channel, (discord.Thread,)) and not getattr(channel, "is_nsfw", lambda: False)():
