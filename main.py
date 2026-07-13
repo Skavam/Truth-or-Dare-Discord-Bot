@@ -122,7 +122,16 @@ class TruthOrDareView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)  
  
-    async def _send_prompt(self, interaction: discord.Interaction, kind: str):           
+    async def _send_prompt(self, interaction: discord.Interaction, kind: str):
+        if kind.startswith("nsfw"):
+            channel = interaction.channel
+            if not isinstance(channel, (discord.Thread,)) and not getattr(channel, "is_nsfw", lambda: False)():
+                await interaction.response.send_message(
+                    "🔒 NSFW prompts can only be used in a channel marked as NSFW in Discord's channel settings.",
+                    ephemeral=True,
+                )
+                return
+                
         pool = POOLS[kind]
         if not pool:
             await interaction.response.send_message(
