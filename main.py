@@ -60,7 +60,7 @@ KIND_LABELS = {
 
 BUTTON_COOLDOWN_SECONDS = 3.0
 
-def gen_id(text: str, length: int = 10) -> str:
+def gen_id(text: str, length: int = 12) -> str:
     digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
     return digest[:length]
  
