@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import string
+import hashlib
 import time
 from pathlib import Path
 from dotenv import load_dotenv
@@ -59,9 +60,9 @@ KIND_LABELS = {
 
 BUTTON_COOLDOWN_SECONDS = 3.0
 
-def gen_id(length: int = 10) -> str:
-    alphabet = string.ascii_lowercase + string.digits
-    return "".join(random.choice(alphabet) for _ in range(length))
+def gen_id(text: str, length: int = 10) -> str:
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    return digest[:length]
  
 def get_prompt_text(entry) -> str:
     return entry["text"] if isinstance(entry, dict) else entry
@@ -124,7 +125,7 @@ def build_embed(kind: str, prompt_text: str, rating: str, requester: discord.abc
     embed.description = f"**{prompt_text}**"
     embed.add_field(
         name="",
-        value=f"Type: {label} | Rating: {rating} | ID: {gen_id()}",
+        value=f"Type: {label} | Rating: {rating} | ID: {gen_id(prompt_text)}",
         inline=False,
     )
     return embed
