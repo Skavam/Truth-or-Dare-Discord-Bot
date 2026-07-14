@@ -71,18 +71,18 @@ def get_prompt_rating(entry, kind: str) -> str:
         return entry["rating"]
     return DEFAULT_RATINGS[kind]
  
-def pick_unique(pool: list, last_map: dict[int, object], channel_id: int):
+def pick_unique(pool: list, last_map: dict[int, int], channel_id: int):
     if not pool:
         return None
-    choice = random.choice(pool)
+    last_index = last_map.get(channel_id)
+    index = random.randrange(len(pool))
     if len(pool) > 1:
-        while choice == last_map.get(channel_id):
-            choice = random.choice(pool)
-    last_map[channel_id] = choice
-    return choice
+        while index == last_index:
+            index = random.randrange(len(pool))
+    last_map[channel_id] = index
+    return pool[index]
 
 def is_nsfw_channel(channel) -> bool:
-    """Return True if the channel (or, for threads, its parent channel) is marked NSFW."""
     if isinstance(channel, discord.Thread):
         parent = channel.parent
         return bool(getattr(parent, "is_nsfw", lambda: False)()) if parent is not None else False
@@ -95,7 +95,7 @@ class TruthOrDareClient(discord.Client):
     def __init__(self):
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
-        self.last_shown: dict[str, dict[int, object]] = {
+        self.last_shown: dict[str, dict[int, int]] = {
             "truth": {},
             "dare": {},
             "nsfw_truth": {},
