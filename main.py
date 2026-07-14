@@ -101,7 +101,7 @@ class TruthOrDareClient(discord.Client):
             "nsfw_truth": {},
             "nsfw_dare": {},
         }
-        self.last_click: dict[int, float] = {}
+        self.last_click: dict[tuple[int, int], float] = {}
  
     async def setup_hook(self):
         await self.tree.sync()
@@ -133,18 +133,19 @@ class TruthOrDareView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)  
 
-    def _check_cooldown(self, user_id: int) -> float:
+    def _check_cooldown(self, user_id: int, channel_id: int) -> float:
         now = time.monotonic()
-        last = client.last_click.get(user_id)
+        key = (user_id, channel_id)
+        last = client.last_click.get(key)
         if last is not None:
             elapsed = now - last
             if elapsed < BUTTON_COOLDOWN_SECONDS:
                 return BUTTON_COOLDOWN_SECONDS - elapsed
-        client.last_click[user_id] = now
+        client.last_click[key] = now
         return 0.0
  
     async def _send_prompt(self, interaction: discord.Interaction, kind: str):
-        remaining = self._check_cooldown(interaction.user.id)
+        remaining = self._check_cooldown(interaction.user.id, interaction.channel_id)
         if remaining > 0:
             await interaction.response.send_message(
                 f"⏳ Slow down! You can click again in {remaining:.1f}s.",
